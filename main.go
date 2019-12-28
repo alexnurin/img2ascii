@@ -26,13 +26,10 @@ func processPixel(c color.Color) rune {
 	gc := color.GrayModel.Convert(c)
 	r, _, _, _ := gc.RGBA()
 	r = r >> 8
-
-	// symbols := []rune("@%#*+=-:. ")
-
-	if r >= 128 {
-		return ' '
-	}
-	return '@'
+	chars := []rune("@#%*+-:. ")
+	//fmt.Println(r)
+	id := int(r) * len(chars) / 256
+	return chars[id]
 }
 
 func convertToAscii(img image.Image) [][]rune {
@@ -54,18 +51,18 @@ func main() {
 	flag.Parse()
 
 	if flag.NArg() == 0 {
-		fmt.Println("Usage: asciimg <image.jpg>")
+		fmt.Println("Usage: asciimg <imagename.jpg>")
 		os.Exit(0)
 	}
 	img := flag.Arg(0)
 
-	image, err := decodeImageFile(img)
+	img_decoded, err := decodeImageFile(img)
 	if err != nil {
 		fmt.Println("Error:", err.Error())
 		os.Exit(1)
 	}
 
-	textImg := convertToAscii(image)
+	textImg := convertToAscii(img_decoded)
 	for i := range textImg {
 		for j := range textImg[i] {
 			fmt.Printf("%c", textImg[i][j])
