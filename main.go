@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	img_size_x = flag.Int("h", 0, "Image height")
-	img_size_y = flag.Int("w", 0, "Image width")
+	img_size_y = flag.Int("h", 0, "Image height")
+	img_size_x = flag.Int("w", 0, "Image width")
 )
 
 func decodeImageFile(imgName string) (image.Image, error) {
@@ -32,33 +32,36 @@ func processCell(c color.Color) rune {
 	r, _, _, _ := gc.RGBA()
 	r = r >> 8
 	chars := []rune("@#%*+-:. ")
-	//fmt.Println(r)
 	id := int(r) * len(chars) / 256
 	return chars[id]
 }
 
-func getCell(img image.Image, x int, y int) rune {
-	return processCell(img.At(x, y))
+func getCell(img image.Image, y int, x int) rune {
+	res :=  processCell(img.At(x, y))
+	return res
 }
 
 func convertToAscii(img image.Image) [][]rune {
-	textImg := make([][]rune, img.Bounds().Dy())
-	// i := 0; i < i.Bound().Dy; i++
-	sz_x := img.Bounds().Dy()
-	sz_y := img.Bounds().Dx()
-	fmt.Println(sz_x, sz_y)
+	sz_x := img.Bounds().Dx()
+	sz_y := img.Bounds().Dy()
+
+
 	if sz_x > *img_size_x && *img_size_x > 0 {
 		sz_x = *img_size_x
 	}
 	if sz_y > *img_size_y && *img_size_y > 0 {
 		sz_y = *img_size_y
 	}
+
+	textImg := make([][]rune, sz_y)
 	fmt.Println(sz_x, sz_y)
-	for i := 0; i < sz_x; i++ {
-		textImg[i] = make([]rune, sz_y)
+
+	for i := 0; i < sz_y; i++ {
+		textImg[i] = make([]rune, sz_x)
 	}
-	for i := 0; i < sz_x; i++ {
-		for j := 0; j < sz_y; j++ {
+
+	for i := 0; i < sz_y; i++ {
+		for j := 0; j < sz_x; j++ {
 			textImg[i][j] = getCell(img, i, j)
 		}
 	}
