@@ -11,6 +11,11 @@ import (
 	"os"
 )
 
+var (
+	img_size_x = flag.Int("h", 0, "Image height")
+	img_size_y = flag.Int("w", 0, "Image width")
+)
+
 func decodeImageFile(imgName string) (image.Image, error) {
 	imgFile, err := os.Open(imgName)
 	if err != nil {
@@ -22,7 +27,7 @@ func decodeImageFile(imgName string) (image.Image, error) {
 	return img, err
 }
 
-func processPixel(c color.Color) rune {
+func processCell(c color.Color) rune {
 	gc := color.GrayModel.Convert(c)
 	r, _, _, _ := gc.RGBA()
 	r = r >> 8
@@ -32,18 +37,36 @@ func processPixel(c color.Color) rune {
 	return chars[id]
 }
 
+func getCell(img image.Image, x int, y int) rune {
+	return processCell(img.At(x, y))
+}
+
 func convertToAscii(img image.Image) [][]rune {
 	textImg := make([][]rune, img.Bounds().Dy())
 	// i := 0; i < i.Bound().Dy; i++
-	for i := range textImg {
-		textImg[i] = make([]rune, img.Bounds().Dx())
+	sz_x := img.Bounds().Dy()
+	sz_y := img.Bounds().Dx()
+	fmt.Println(sz_x, sz_y)
+	if sz_x > *img_size_x && *img_size_x > 0 {
+		sz_x = *img_size_x
 	}
-
-	for i := range textImg {
-		for j := range textImg[i] {
-			textImg[i][j] = processPixel(img.At(j, i))
+	if sz_y > *img_size_y && *img_size_y > 0 {
+		sz_y = *img_size_y
+	}
+	fmt.Println(sz_x, sz_y)
+	for i := 0; i < sz_x; i++ {
+		textImg[i] = make([]rune, sz_y)
+	}
+	for i := 0; i < sz_x; i++ {
+		for j := 0; j < sz_y; j++ {
+			textImg[i][j] = getCell(img, i, j)
 		}
 	}
+	//for i := range textImg {
+	//	for j := range textImg[i] {
+	//		textImg[i][j] = processCell(img.At(j, i))
+	//	}
+	//}
 	return textImg
 }
 
