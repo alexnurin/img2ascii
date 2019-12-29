@@ -16,8 +16,8 @@ import (
 var (
 	img_size_y = flag.Int("h", 0, "Image height")
 	img_size_x = flag.Int("w", 0, "Image width")
-	quadro     = flag.Bool("q", false, "Convert to quadro size")
-	normalize  = flag.Bool("n", false, "Convert to normal size (3:2)")
+	while_bg   = flag.Bool("bg", false, "Background color")
+	text_color = flag.Bool("color", false, "Ascii text color")
 )
 
 func decodeImageFile(imgName string) (image.Image, error) {
@@ -49,14 +49,6 @@ func getChar(r int) rune {
 	return chars[id]
 }
 
-func mean(x []int) uint8 {
-	res := 0
-	for i := range x {
-		res += x[i]
-	}
-	return uint8(res / len(x))
-}
-
 func processCell(img image.Image, y int, x int, sz_x int, sz_y int) (rune, Color.RGBStyle) {
 	res := 0
 	n, _ := minMax(x+sz_x, img.Bounds().Dx())
@@ -70,21 +62,25 @@ func processCell(img image.Image, y int, x int, sz_x int, sz_y int) (rune, Color
 	cnt := (n - x) * (m - y)
 	res1 := res / cnt
 
-	//clr := []int{0, 0, 0}
 	var rc, gc, bc int
 	for i := x; i < n; i++ {
 		for j := y; j < m; j++ {
 			r, g, b := getColor(img.At(i, j))
-			r = r >> 8
-			g = g >> 8
-			b = b >> 8
-			rc += r
-			gc += g
-			bc += b
+			rc += r >> 8
+			gc += g >> 8
+			bc += b >> 8
 		}
 	}
-	c := *Color.NewRGBStyle(Color.RGB(uint8(rc/cnt), uint8(gc/cnt), uint8(bc/cnt)), Color.RGB(255, 255, 255))
-	//c := Color.RGB(uint8(rc/cnt), uint8(gc/cnt), uint8(bc/cnt))
+	txt_color := Color.RGB(255, 255, 255)
+	bg_color := Color.RGB(0, 0, 0)
+
+	if *text_color {
+		txt_color = Color.RGB(uint8(rc/cnt), uint8(gc/cnt), uint8(bc/cnt))
+	}
+	if *while_bg {
+		bg_color = Color.RGB(255, 255, 255)
+	}
+	c := *Color.NewRGBStyle(txt_color, bg_color)
 	return getChar(res1), c
 }
 
@@ -107,14 +103,7 @@ func getDeltas(img image.Image) (int, int) {
 
 	sz_x := img.Bounds().Dx() / delta_x
 	sz_y := img.Bounds().Dy() / delta_y
-	if *normalize {
-		_, sz_x = minMax(sz_x, sz_y)
-		_, sz_y = minMax(sz_x, sz_y)
-		sz_y = sz_y * 4 / 3
-	} else if *quadro {
-		_, sz_x = minMax(sz_x, sz_y)
-		_, sz_y = minMax(sz_x, sz_y)
-	}
+
 	return sz_x, sz_y
 }
 
