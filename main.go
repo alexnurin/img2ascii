@@ -37,7 +37,6 @@ func getGray(c color.Color) int {
 }
 
 func getChar(r int) rune {
-	//r := getGray(c)
 	chars := []rune("@#%*+-:. ")
 	id := r * len(chars) / 256
 	return chars[id]
@@ -74,7 +73,6 @@ func getDeltas(img image.Image) (int, int) {
 		delta_x = *img_size_x
 	}
 
-	//fmt.Println(*img_size_x, *img_size_y, delta_x, delta_y)
 	sz_x := img.Bounds().Dx() / delta_x
 	sz_y := img.Bounds().Dy() / delta_y
 	if *normalize {
@@ -92,7 +90,7 @@ func convertToAscii(img image.Image) [][]rune {
 	sz_x, sz_y := img.Bounds().Dx(), img.Bounds().Dy()
 
 	delta_x, delta_y := getDeltas(img)
-	// fmt.Println("deltas:", delta_x, delta_y)
+
 	sz_y_new, sz_x_new := sz_y/delta_y+1, sz_x/delta_x+1
 
 	textImg := make([][]rune, sz_y_new)
@@ -100,18 +98,11 @@ func convertToAscii(img image.Image) [][]rune {
 		textImg[i] = make([]rune, sz_x_new)
 	}
 
-	// fmt.Println(sz_x, sz_y, sz_x_new, sz_y_new)
-
 	for i := 0; i < sz_y; i += delta_y {
 		for j := 0; j < sz_x; j += delta_x {
 			textImg[i/delta_y][j/delta_x] = processCell(img, i, j, delta_x, delta_y)
 		}
 	}
-	//for i := range textImg {
-	//	for j := range textImg[i] {
-	//		textImg[i][j] = processCell(img.At(j, i))
-	//	}
-	//}
 	return textImg
 }
 
@@ -128,12 +119,8 @@ func main() {
 		fmt.Println("Error:", err.Error())
 		os.Exit(1)
 	}
-	fmt.Println("base:", img_decoded.Bounds().Dx(), img_decoded.Bounds().Dy())
 
 	textImg := convertToAscii(img_decoded)
-	//fmt.Println(textImg)
-
-	fmt.Println("res:", len(textImg), len(textImg[0]))
 
 	for i := range textImg {
 		for j := range textImg[i] {
@@ -141,5 +128,4 @@ func main() {
 		}
 		fmt.Println()
 	}
-
 }
