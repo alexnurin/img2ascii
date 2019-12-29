@@ -8,6 +8,7 @@ import (
 	"image/color"
 	// Side-effect import.
 	// Сайд-эффект — добавление декодера PNG в пакет image.
+	_ "image/jpeg"
 	_ "image/png"
 	"os"
 )
@@ -17,7 +18,6 @@ var (
 	img_size_x = flag.Int("w", 0, "Image width")
 	quadro     = flag.Bool("q", false, "Convert to quadro size")
 	normalize  = flag.Bool("n", false, "Convert to normal size (3:2)")
-	//colors     = []string{"\033[0;31m%c\033[0m", "\033[0;32m%c\033[0m", "\033[0;34m%c\033[0m", }
 )
 
 func decodeImageFile(imgName string) (image.Image, error) {
@@ -57,7 +57,7 @@ func mean(x []int) uint8 {
 	return uint8(res / len(x))
 }
 
-func processCell(img image.Image, y int, x int, sz_x int, sz_y int) (rune, Color.RGBColor) {
+func processCell(img image.Image, y int, x int, sz_x int, sz_y int) (rune, Color.RGBStyle) {
 	res := 0
 	n, _ := minMax(x+sz_x, img.Bounds().Dx())
 	m, _ := minMax(y+sz_y, img.Bounds().Dy())
@@ -76,23 +76,15 @@ func processCell(img image.Image, y int, x int, sz_x int, sz_y int) (rune, Color
 		for j := y; j < m; j++ {
 			r, g, b := getColor(img.At(i, j))
 			r = r >> 8
-			g = g  >> 8
+			g = g >> 8
 			b = b >> 8
 			rc += r
 			gc += g
 			bc += b
 		}
 	}
-	//mx := 0
-	//mx_i := 0
-	//for i := range clr {
-	//	if clr[i] > mx {
-	//		mx = clr[i]
-	//		mx_i = i
-	//	}
-	//}
-
-	c := Color.RGB(uint8(rc/cnt), uint8(gc/cnt), uint8(bc/cnt))
+	c := *Color.NewRGBStyle(Color.RGB(uint8(rc/cnt), uint8(gc/cnt), uint8(bc/cnt)), Color.RGB(255, 255, 255))
+	//c := Color.RGB(uint8(rc/cnt), uint8(gc/cnt), uint8(bc/cnt))
 	return getChar(res1), c
 }
 
@@ -126,7 +118,7 @@ func getDeltas(img image.Image) (int, int) {
 	return sz_x, sz_y
 }
 
-func convertToAscii(img image.Image) ([][]rune, [][]Color.RGBColor) {
+func convertToAscii(img image.Image) ([][]rune, [][]Color.RGBStyle) {
 	sz_x, sz_y := img.Bounds().Dx(), img.Bounds().Dy()
 
 	delta_x, delta_y := getDeltas(img)
@@ -134,11 +126,11 @@ func convertToAscii(img image.Image) ([][]rune, [][]Color.RGBColor) {
 	sz_y_new, sz_x_new := sz_y/delta_y+1, sz_x/delta_x+1
 
 	textImg := make([][]rune, sz_y_new)
-	colorImg := make([][]Color.RGBColor, sz_y_new)
+	colorImg := make([][]Color.RGBStyle, sz_y_new)
 
 	for i := 0; i < sz_y_new; i++ {
 		textImg[i] = make([]rune, sz_x_new)
-		colorImg[i] = make([]Color.RGBColor, sz_x_new)
+		colorImg[i] = make([]Color.RGBStyle, sz_x_new)
 	}
 
 	for i := 0; i < sz_y; i += delta_y {
@@ -153,7 +145,7 @@ func main() {
 	flag.Parse()
 
 	if flag.NArg() == 0 {
-		fmt.Println("Usage: asciimg <imagename.jpg>")
+		fmt.Println("Usage: asciimg <imagename>")
 		os.Exit(0)
 	}
 	img := flag.Arg(0)
@@ -162,8 +154,8 @@ func main() {
 		fmt.Println("Error:", err.Error())
 		os.Exit(1)
 	}
-
 	textImg, colorImg := convertToAscii(img_decoded)
+	fmt.Println(len(textImg), len(textImg[0]))
 
 	for i := range textImg {
 		for j := range textImg[i] {
