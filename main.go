@@ -14,7 +14,8 @@ import (
 var (
 	img_size_y = flag.Int("h", 0, "Image height")
 	img_size_x = flag.Int("w", 0, "Image width")
-	quadro = flag.Bool("q", false, "Convert to quadro size")
+	quadro     = flag.Bool("q", false, "Convert to quadro size")
+	normalize  = flag.Bool("n", false, "Convert to normal size (3:2)")
 )
 
 func decodeImageFile(imgName string) (image.Image, error) {
@@ -35,7 +36,7 @@ func getGray(c color.Color) int {
 	return int(r)
 }
 
-func processPixel(r int) rune {
+func getChar(r int) rune {
 	//r := getGray(c)
 	chars := []rune("@#%*+-:. ")
 	id := r * len(chars) / 256
@@ -44,8 +45,8 @@ func processPixel(r int) rune {
 
 func processCell(img image.Image, y int, x int, sz_x int, sz_y int) rune {
 	count := 0
-	n := min(x+sz_x, img.Bounds().Dx())
-	m := min(y+sz_y, img.Bounds().Dy())
+	n, _ := minMax(x+sz_x, img.Bounds().Dx())
+	m, _ := minMax(y+sz_y, img.Bounds().Dy())
 
 	for i := x; i < n; i++ {
 		for j := y; j < m; j++ {
@@ -53,14 +54,14 @@ func processCell(img image.Image, y int, x int, sz_x int, sz_y int) rune {
 		}
 	}
 	res := count / ((n - x) * (m - y))
-	return processPixel(res)
+	return getChar(res)
 }
 
-func min(a int, b int) int {
+func minMax(a int, b int) (int, int) {
 	if a < b {
-		return a
+		return a, b
 	}
-	return b
+	return b, a
 }
 
 func getDeltas(img image.Image) (int, int) {
@@ -72,37 +73,34 @@ func getDeltas(img image.Image) (int, int) {
 	if *img_size_x > 0 {
 		delta_x = *img_size_x
 	}
-	fmt.Println(*img_size_x, *img_size_y, delta_x, delta_y)
+
+	//fmt.Println(*img_size_x, *img_size_y, delta_x, delta_y)
 	sz_x := img.Bounds().Dx() / delta_x
 	sz_y := img.Bounds().Dy() / delta_y
-	if *quadro {
-		sz_x, sz_y = min(sz_x, sz_y), min(sz_x, sz_y)
-	}
-
-	if sz_x > *img_size_x && *img_size_x > 0 {
-		sz_x = *img_size_x
-	}
-	if sz_y > *img_size_y && *img_size_y > 0 {
-		sz_y = *img_size_y
+	if *normalize {
+		_, sz_x = minMax(sz_x, sz_y)
+		_, sz_y = minMax(sz_x, sz_y)
+		sz_y = sz_y * 4 / 3
+	} else if *quadro {
+		_, sz_x = minMax(sz_x, sz_y)
+		_, sz_y = minMax(sz_x, sz_y)
 	}
 	return sz_x, sz_y
 }
 
 func convertToAscii(img image.Image) [][]rune {
-	sz_x := img.Bounds().Dx()
-	sz_y := img.Bounds().Dy()
+	sz_x, sz_y := img.Bounds().Dx(), img.Bounds().Dy()
 
 	delta_x, delta_y := getDeltas(img)
-
-	sz_y_new := sz_y/delta_y + 1
-	sz_x_new := sz_x/delta_x + 1
+	// fmt.Println("deltas:", delta_x, delta_y)
+	sz_y_new, sz_x_new := sz_y/delta_y+1, sz_x/delta_x+1
 
 	textImg := make([][]rune, sz_y_new)
 	for i := 0; i < sz_y_new; i++ {
 		textImg[i] = make([]rune, sz_x_new)
 	}
 
-	//fmt.Println(sz_x, sz_y, sz_x_new, sz_y_new)
+	// fmt.Println(sz_x, sz_y, sz_x_new, sz_y_new)
 
 	for i := 0; i < sz_y; i += delta_y {
 		for j := 0; j < sz_x; j += delta_x {
@@ -130,12 +128,12 @@ func main() {
 		fmt.Println("Error:", err.Error())
 		os.Exit(1)
 	}
-	fmt.Println(img_decoded.Bounds().Dx(), img_decoded.Bounds().Dy())
+	fmt.Println("base:", img_decoded.Bounds().Dx(), img_decoded.Bounds().Dy())
 
 	textImg := convertToAscii(img_decoded)
 	//fmt.Println(textImg)
 
-	fmt.Println(len(textImg), len(textImg[0]))
+	fmt.Println("res:", len(textImg), len(textImg[0]))
 
 	for i := range textImg {
 		for j := range textImg[i] {
