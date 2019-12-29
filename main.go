@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	Color "github.com/gookit/color"
 	"image"
 	"image/color"
 	// Side-effect import.
@@ -16,7 +17,7 @@ var (
 	img_size_x = flag.Int("w", 0, "Image width")
 	quadro     = flag.Bool("q", false, "Convert to quadro size")
 	normalize  = flag.Bool("n", false, "Convert to normal size (3:2)")
-	colors     = []string{"\033[0;31m%c\033[0m", "\033[0;32m%c\033[0m", "\033[0;34m%c\033[0m"}
+	//colors     = []string{"\033[0;31m%c\033[0m", "\033[0;32m%c\033[0m", "\033[0;34m%c\033[0m", }
 )
 
 func decodeImageFile(imgName string) (image.Image, error) {
@@ -43,42 +44,56 @@ func getColor(c color.Color) (int, int, int) {
 }
 
 func getChar(r int) rune {
-	chars := []rune("@#%*+-:. ")
+	chars := []rune("@#%*+: ")
 	id := r * len(chars) / 256
 	return chars[id]
 }
 
-func processCell(img image.Image, y int, x int, sz_x int, sz_y int) (rune, int) {
-	count := 0
+func mean(x []int) uint8 {
+	res := 0
+	for i := range x {
+		res += x[i]
+	}
+	return uint8(res / len(x))
+}
+
+func processCell(img image.Image, y int, x int, sz_x int, sz_y int) (rune, Color.RGBColor) {
+	res := 0
 	n, _ := minMax(x+sz_x, img.Bounds().Dx())
 	m, _ := minMax(y+sz_y, img.Bounds().Dy())
 
 	for i := x; i < n; i++ {
 		for j := y; j < m; j++ {
-			count += getGray(img.At(i, j))
+			res += getGray(img.At(i, j))
 		}
 	}
-	res := count / ((n - x) * (m - y))
+	cnt := (n - x) * (m - y)
+	res1 := res / cnt
 
-	clr := []int{0, 0, 0}
+	//clr := []int{0, 0, 0}
+	var rc, gc, bc int
 	for i := x; i < n; i++ {
 		for j := y; j < m; j++ {
 			r, g, b := getColor(img.At(i, j))
-			clr[0] += r
-			clr[1] += g
-			clr[2] += b
+			r = r >> 8
+			g = g  >> 8
+			b = b >> 8
+			rc += r
+			gc += g
+			bc += b
 		}
 	}
-	mx := 0
-	mx_i := 0
-	for i := range clr {
-		if clr[i] > mx {
-			mx = clr[i]
-			mx_i = i
-		}
-	}
+	//mx := 0
+	//mx_i := 0
+	//for i := range clr {
+	//	if clr[i] > mx {
+	//		mx = clr[i]
+	//		mx_i = i
+	//	}
+	//}
 
-	return getChar(res), mx_i
+	c := Color.RGB(uint8(rc/cnt), uint8(gc/cnt), uint8(bc/cnt))
+	return getChar(res1), c
 }
 
 func minMax(a int, b int) (int, int) {
@@ -111,7 +126,7 @@ func getDeltas(img image.Image) (int, int) {
 	return sz_x, sz_y
 }
 
-func convertToAscii(img image.Image) ([][]rune, [][]int) {
+func convertToAscii(img image.Image) ([][]rune, [][]Color.RGBColor) {
 	sz_x, sz_y := img.Bounds().Dx(), img.Bounds().Dy()
 
 	delta_x, delta_y := getDeltas(img)
@@ -119,11 +134,11 @@ func convertToAscii(img image.Image) ([][]rune, [][]int) {
 	sz_y_new, sz_x_new := sz_y/delta_y+1, sz_x/delta_x+1
 
 	textImg := make([][]rune, sz_y_new)
-	colorImg := make([][]int, sz_y_new)
+	colorImg := make([][]Color.RGBColor, sz_y_new)
 
 	for i := 0; i < sz_y_new; i++ {
 		textImg[i] = make([]rune, sz_x_new)
-		colorImg[i] = make([]int, sz_x_new)
+		colorImg[i] = make([]Color.RGBColor, sz_x_new)
 	}
 
 	for i := 0; i < sz_y; i += delta_y {
@@ -152,7 +167,7 @@ func main() {
 
 	for i := range textImg {
 		for j := range textImg[i] {
-			fmt.Printf(colors[colorImg[i][j]], textImg[i][j])
+			colorImg[i][j].Printf("%c", textImg[i][j])
 		}
 		fmt.Println()
 	}
