@@ -14,6 +14,7 @@ import (
 var (
 	img_size_y = flag.Int("h", 0, "Image height")
 	img_size_x = flag.Int("w", 0, "Image width")
+	quadro = flag.Bool("q", false, "Convert to quadro size")
 )
 
 func decodeImageFile(imgName string) (image.Image, error) {
@@ -43,18 +44,40 @@ func processPixel(r int) rune {
 
 func processCell(img image.Image, y int, x int, sz_x int, sz_y int) rune {
 	count := 0
-	for i := x; i < x+sz_x; i++ {
-		for j := y; j < y+sz_y; j++ {
+	n := min(x+sz_x, img.Bounds().Dx())
+	m := min(y+sz_y, img.Bounds().Dy())
+
+	for i := x; i < n; i++ {
+		for j := y; j < m; j++ {
 			count += getGray(img.At(i, j))
 		}
 	}
-	res := count / (sz_x * sz_y)
+	res := count / ((n - x) * (m - y))
 	return processPixel(res)
 }
 
-func convertToAscii(img image.Image) [][]rune {
-	sz_x := img.Bounds().Dx()
-	sz_y := img.Bounds().Dy()
+func min(a int, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func getDeltas(img image.Image) (int, int) {
+	delta_x := 64
+	delta_y := 64
+	if *img_size_y > 0 {
+		delta_y = *img_size_y
+	}
+	if *img_size_x > 0 {
+		delta_x = *img_size_x
+	}
+	fmt.Println(*img_size_x, *img_size_y, delta_x, delta_y)
+	sz_x := img.Bounds().Dx() / delta_x
+	sz_y := img.Bounds().Dy() / delta_y
+	if *quadro {
+		sz_x, sz_y = min(sz_x, sz_y), min(sz_x, sz_y)
+	}
 
 	if sz_x > *img_size_x && *img_size_x > 0 {
 		sz_x = *img_size_x
@@ -62,9 +85,15 @@ func convertToAscii(img image.Image) [][]rune {
 	if sz_y > *img_size_y && *img_size_y > 0 {
 		sz_y = *img_size_y
 	}
+	return sz_x, sz_y
+}
 
-	delta_x := 10
-	delta_y := 15
+func convertToAscii(img image.Image) [][]rune {
+	sz_x := img.Bounds().Dx()
+	sz_y := img.Bounds().Dy()
+
+	delta_x, delta_y := getDeltas(img)
+
 	sz_y_new := sz_y/delta_y + 1
 	sz_x_new := sz_x/delta_x + 1
 
@@ -96,15 +125,18 @@ func main() {
 		os.Exit(0)
 	}
 	img := flag.Arg(0)
-
 	img_decoded, err := decodeImageFile(img)
 	if err != nil {
 		fmt.Println("Error:", err.Error())
 		os.Exit(1)
 	}
+	fmt.Println(img_decoded.Bounds().Dx(), img_decoded.Bounds().Dy())
 
 	textImg := convertToAscii(img_decoded)
 	//fmt.Println(textImg)
+
+	fmt.Println(len(textImg), len(textImg[0]))
+
 	for i := range textImg {
 		for j := range textImg[i] {
 			fmt.Printf("%c", textImg[i][j])
