@@ -44,7 +44,7 @@ func getColor(c color.Color) (int, int, int) {
 }
 
 func getChar(r int) rune {
-	chars := []rune("@#%*+: ")
+	chars := []rune(".:+*%#@")
 	id := r * len(chars) / 256
 	return chars[id]
 }
