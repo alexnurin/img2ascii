@@ -6,6 +6,9 @@ import (
 	Color "github.com/gookit/color"
 	"image"
 	"image/color"
+	"sync"
+	"time"
+
 	// Side-effect import.
 	// Сайд-эффект — добавление декодера PNG в пакет image.
 	_ "image/jpeg"
@@ -145,11 +148,17 @@ func main() {
 	}
 	textImg, colorImg := convertToAscii(img_decoded)
 	fmt.Println(len(textImg), len(textImg[0]))
-
 	for i := range textImg {
+		var wg sync.WaitGroup
+		wg.Add(len(textImg[i]))
 		for j := range textImg[i] {
-			colorImg[i][j].Printf("%c", textImg[i][j])
+			go func() {
+				defer wg.Done()
+				colorImg[i][j].Printf("%c", textImg[i][j])
+			}()
+			time.Sleep(time.Second / 4000000)
 		}
+		wg.Wait()
 		fmt.Println()
 	}
 }
