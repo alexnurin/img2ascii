@@ -7,7 +7,7 @@ import (
 	"image"
 	"image/color"
 	"sync"
-	"time"
+	//"time"
 
 	// Side-effect import.
 	// Сайд-эффект — добавление декодера PNG в пакет image.
@@ -133,6 +133,11 @@ func convertToAscii(img image.Image) ([][]rune, [][]Color.RGBStyle) {
 	return textImg, colorImg
 }
 
+func call(a Color.RGBStyle, b rune, wg *sync.WaitGroup) {
+	defer wg.Done()
+	a.Printf("%c", b)
+
+}
 func main() {
 	flag.Parse()
 
@@ -152,11 +157,9 @@ func main() {
 		var wg sync.WaitGroup
 		wg.Add(len(textImg[i]))
 		for j := range textImg[i] {
-			go func() {
-				defer wg.Done()
-				colorImg[i][j].Printf("%c", textImg[i][j])
-			}()
-			time.Sleep(time.Second / 4000000)
+			//colorImg[i][j].Printf("%c",textImg[i][j])
+			go call(colorImg[i][j], textImg[i][j], &wg)
+			//time.Sleep(time.Second / 5000000)
 		}
 		wg.Wait()
 		fmt.Println()
