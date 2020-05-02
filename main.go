@@ -7,6 +7,8 @@ import (
 	"image"
 	"image/color"
 	"sync"
+	"time"
+
 	//"time"
 
 	// Side-effect import.
@@ -138,6 +140,8 @@ func call(a Color.RGBStyle, b rune, wg *sync.WaitGroup) {
 	a.Printf("%c", b)
 
 }
+
+// TODO merge normal photo and sur photo to make more distinguishable
 func main() {
 	flag.Parse()
 
@@ -159,7 +163,8 @@ func main() {
 		for j := range textImg[i] {
 			//colorImg[i][j].Printf("%c",textImg[i][j])
 			go call(colorImg[i][j], textImg[i][j], &wg)
-			//time.Sleep(time.Second / 5000000)
+			// TODO убрать этот костыль
+			time.Sleep(time.Second / 5000000)
 		}
 		wg.Wait()
 		fmt.Println()
